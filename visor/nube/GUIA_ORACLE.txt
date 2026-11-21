@@ -1,0 +1,73 @@
+PONER EL VISOR EN LA NUBE (Oracle Cloud, nivel gratuito)
+=========================================================
+Resultado: el visor queda encendido 24 horas en un servidor de Oracle. Cada noche (2:00 a. m. hora Colombia)
+busca las imágenes Sentinel-2 nuevas de tus zonas y las calcula solo. Lo abres desde cualquier computador o
+celular con http://TU_IP:8765 y tu usuario y contraseña. Tu PC puede estar apagado.
+
+Lo que da gratis Oracle ("Always Free"): servidor ARM de hasta 2 núcleos y 12 GB de RAM, y 200 GB de disco.
+Alcanza para el modelo (más lento que un PC moderno: ~2-4 min por fecha de una zona mediana).
+
+--------------------------------------------------------------------------
+PASO 1 · Crear la cuenta (10-15 min)
+  1. Entra a https://www.oracle.com/cloud/free/ y pulsa "Start for free".
+  2. País: Colombia. Datos personales y correo; confirma el correo.
+  3. "Home Region" (región principal): NO se puede cambiar después y el servidor gratis solo se crea ahí.
+     Recomendada: "US East (Ashburn)" (la de más capacidad). Alternativas: "Brazil East (Sao Paulo)",
+     "Colombia Central (Bogota)" si aparece (más cerca, pero a veces sin máquinas gratis disponibles).
+  4. Tarjeta de crédito/débito: es solo verificación (puede aparecer un cobro temporal de ~1 USD que se devuelve).
+  5. Espera el correo "Your Oracle Cloud account is ready" (a veces tarda unos minutos).
+
+  Recomendado (después, opcional): Oracle puede apagar servidores gratis que pasen 7 días casi sin uso.
+  Para evitarlo: en la consola, menú ☰ > Billing & Cost Management > Upgrade and Manage Payment >
+  "Pay As You Go". Sigues sin pagar mientras estés dentro de lo gratis (Oracle lo dice así en su documentación),
+  y no te reclaman el servidor. El procesamiento de cada noche también ayuda a que no se vea "inactivo".
+
+--------------------------------------------------------------------------
+PASO 2 · Crear el servidor (instancia)
+  1. En la consola: menú ☰ > Compute > Instances > "Create instance".
+  2. Name: clorofila
+  3. Image and shape > "Edit":
+       Image:  "Change image" > Canonical Ubuntu > 24.04   (IMPORTANTE: 24.04, no 22.04)
+       Shape:  "Change shape" > Ampere > VM.Standard.A1.Flex  > 2 OCPUs y 12 GB de memoria
+  4. Networking: deja "Create new virtual cloud network" y "Create new public subnet";
+       marca "Assign a public IPv4 address".
+  5. Add SSH keys: "Generate a key pair for me" > pulsa "Save private key" (se descarga un archivo .key).
+       GUÁRDALO bien (por ejemplo en Documentos\clorofila_satelite\nube\). Sin él no puedes entrar al servidor.
+  6. Boot volume: puedes subirlo a 100 GB ("Specify a custom boot volume size") para tener espacio de sobra.
+  7. "Create". En 1-2 minutos queda "Running". Copia la "Public IP address".
+
+  Si sale "Out of capacity / Out of host capacity": no hay máquinas gratis libres en ese momento.
+  Prueba otro "Availability domain" en el mismo formulario, o vuelve a intentar más tarde (suele liberarse).
+
+--------------------------------------------------------------------------
+PASO 3 · Abrir el puerto del visor (8765)
+  1. En la página de la instancia: sección "Primary VNIC" > enlace de la "Subnet".
+  2. "Security Lists" > "Default Security List..." > "Add Ingress Rules":
+       Source CIDR: 0.0.0.0/0     IP Protocol: TCP     Destination Port Range: 8765
+     > "Add Ingress Rules".
+
+--------------------------------------------------------------------------
+PASO 4 · Subir e instalar el visor (desde tu PC, 10-15 min)
+  1. En tu carpeta app_clorofila\nube\ haz doble clic en  subir_a_la_nube.bat
+  2. Escribe la IP pública y arrastra el archivo .key a la ventana; Enter.
+  3. Empaqueta la app CON tus mapas ya calculados, la sube y la instala. Al final te pide:
+       usuario y contraseña para entrar al visor (elige una contraseña que no uses en otros sitios).
+  4. Al terminar muestra:  http://TU_IP:8765
+
+--------------------------------------------------------------------------
+PASO 5 · Usarlo
+  - Abre http://TU_IP:8765 desde cualquier navegador; pide el usuario y la contraseña.
+  - Todo funciona igual que en tu PC. Los cálculos en cola siguen aunque cierres el navegador o apagues el PC.
+  - Cada noche calcula solo las imágenes nuevas (últimos 45 días) de las zonas que ya tengan algún mapa.
+    Para elegir zonas o cambiar opciones crea en el servidor el archivo app_clorofila/mapas/auto.json, ej.:
+      {"zonas": ["cienaga_grande", "z_b"], "dias_atras": 45, "nubes": 60, "cobertura": "todo"}
+
+  Para actualizar el visor cuando te mande una versión nueva: reemplaza los archivos en tu carpeta del PC y vuelve
+  a ejecutar subir_a_la_nube.bat (no borra los mapas del servidor; la contraseña se conserva).
+
+--------------------------------------------------------------------------
+Notas de seguridad
+  - La conexión es http (sin candado): la contraseña viaja sin cifrar. Para este uso es aceptable, pero no
+    reutilices una contraseña importante. Si más adelante quieres https con candado, se puede agregar.
+  - Para ver lo que hizo el procesamiento nocturno (en el servidor):  tail -n 50 ~/app_clorofila/automatico.log
+  - Reiniciar el visor (en el servidor):  sudo systemctl restart clorofila

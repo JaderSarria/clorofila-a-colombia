@@ -1,0 +1,65 @@
+VISOR CLOROFILA-A REDCAM
+===================================
+
+Qué es
+  Un visor tipo TRITÓN/Copernicus que corre en tu computador: mapa a pantalla completa, barra de herramientas a la
+  izquierda, línea de tiempo abajo y panel de resultados a la derecha. Todo en una sola pantalla.
+
+Instalación (una sola vez)
+  1. Si no tienes Python: instala Python 3.12 desde https://www.python.org/downloads/
+     IMPORTANTE: marca "Add python.exe to PATH" al instalar.
+  2. Doble clic en  instalar.bat  (unos minutos; necesita internet).
+  Si ya lo tenías instalado de una versión anterior, no hace falta reinstalar: abrir_app.bat agrega lo nuevo.
+
+Uso
+  Doble clic en  abrir_app.bat . Se abre el navegador en http://127.0.0.1:8765
+  No cierres la ventana negra mientras lo uses (ahí corre el modelo).
+
+  Barra izquierda
+   - Zonas: elige la zona (10 incluidas) o crea la tuya dibujando un rectángulo ajustado al agua (máx. 3.000 km²).
+   - Fechas: busca las imágenes Sentinel-2 de un periodo. En la línea de tiempo:
+       punto de color = fecha ya calculada (se ve al instante; el color es su mediana),
+       punto blanco   = imagen disponible sin calcular (clic > "Calcular esta fecha", ~1 min),
+       "Calcular todas las fechas sin calcular" las pone en cola y se van guardando una por una.
+   - Fechas > "Promedio de un periodo": combina píxel a píxel todas las fechas calculadas entre dos días
+       (último mes, 3 meses, temporada seca dic-abr, lluviosa may-nov, año, todo, o fechas a mano).
+       Media geométrica (recomendada), mediana, media aritmética o máximo. Rellena los huecos de nubes.
+       La tabla compara con la media de las muestras REDCAM del mismo periodo.
+   - Análisis: qué resumir en el panel derecho y en la serie de tiempo:
+       Toda la zona / Polígono (dibujas uno; "Borrar polígono" lo quita) / Punto (clic en el agua).
+       El polígono NO cambia la zona ni recalcula: solo resume.
+       Cobertura del cálculo: "Toda la zona" (por defecto) estima toda el agua y pone un velo blanco sobre lo que
+       está a más de 12 km de una estación REDCAM (menor confianza); "Solo cerca" deja eso en blanco y es más rápido.
+   - Capas: mapa base (Océano, Satélite, Calles), opacidad de la clorofila, estaciones, contorno.
+   - Descargar: GeoTIFF de la fecha (QGIS / ArcGIS), serie de tiempo y comparación con REDCAM en CSV.
+  Línea de tiempo: ‹ › para cambiar de fecha, ▶ para animar las fechas calculadas.
+  Clic en el agua: valor de ese punto.
+
+  Los cálculos siguen aunque cierres la pestaña del navegador, mientras la ventana negra esté abierta.
+  Cada fecha se guarda apenas termina (carpeta mapas\<zona>\). Si apagas el PC, lo terminado queda guardado.
+
+  Para dejar muchas fechas calculándose de noche sin abrir el visor: procesar_zona.bat (pide zona y fechas).
+
+Precisión esperada (validación 2024-2025, sin haber visto esos datos)
+  - En una estación REDCAM con historial: R² 0.75, 64 % dentro de ×2.
+  - Lejos de estaciones: R² 0.69, 57 % dentro de ×2, tiende a quedarse corto (×0.84).
+  - Mar abierto (> 12 km de estaciones): se estima, pero con menor confianza (velo blanco en el mapa).
+
+Notas
+  - El cálculo lee por internet solo el recorte de la zona (no la escena completa) y el clima de ese día.
+  - Zonas en blanco = nubes, tierra, vegetación acuática (Hydrilla, buchón), techos o lejos de estaciones.
+  - Si algo falla, el detalle queda en errores.log (envíalo si pides ayuda).
+
+Archivos
+  servidor.py          el visor (servidor local) — se abre con abrir_app.bat
+  web\                 la página del visor (HTML, estilos, Leaflet)
+  clorofila_core.py    cálculo de variables y predicción
+  fuentes.py           lectura de Sentinel-2, NASA POWER y GloFAS
+  lote.py              cálculo por lotes y biblioteca de mapas
+  procesar_zona.bat    procesa una zona y un periodo sin abrir el visor
+  modelo\modelo_clorofila.joblib   modelo entrenado + muestras REDCAM
+
+Nube (Oracle Cloud)
+  nube\GUIA_ORACLE.txt     paso a paso para dejar el visor encendido 24 h en un servidor gratis
+  nube\subir_a_la_nube.bat sube e instala el visor (con tus mapas) en el servidor
+  lote_auto.py             procesamiento automático de cada noche (lo usa el servidor)

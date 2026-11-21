@@ -1,0 +1,15 @@
+limit=10.80,-74.47,10.92,-74.35
+l2w_parameters=Rrs_*
+ancillary_data=False
+dsf_residual_glint_correction=True
+s2_target_res=20
+l1r_delete_netcdf=True
+l2r_delete_netcdf=False
+rgb_rhot=False
+rgb_rhos=False
+map_l2w=False
+l2r_export_geotiff=False
+l2w_export_geotiff=False
+dsf_aot_estimate=fixed
+resolved_geometry=False
+l2w_mask_water_parameters=False

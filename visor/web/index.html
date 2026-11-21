@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visor Clorofila‑a REDCAM</title>
+<link rel="stylesheet" href="/web/vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="/web/vendor/leaflet-draw/leaflet.draw.css">
+<link rel="stylesheet" href="/web/style.css">
+</head>
+<body>
+<header class="barra-sup">
+  <div class="marca">
+    <svg viewBox="0 0 40 40" class="logo" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#ffffff22" stroke="#9fd8dd" stroke-width="1.5"/>
+      <path d="M20 7c-5 7-9 11.5-9 16.5a9 9 0 0 0 18 0C29 18.5 25 14 20 7z" fill="#57c4a4"/><path d="M14 25c2 3 6 4 9 2" stroke="#0b3b6f" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+    <div><div class="titulo">CLOROFILA‑A</div><div class="subtitulo">Visor costero de Colombia · Sentinel‑2 + REDCAM/INVEMAR</div></div>
+  </div>
+  <button id="indTrab" class="ind-trab" hidden></button>
+</header>
+
+<nav class="riel" aria-label="Herramientas">
+  <button data-panel="zonas" class="activo"><svg viewBox="0 0 24 24"><path d="M12 2l9 4.5v11L12 22l-9-4.5v-11z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 6.5l9 4.5 9-4.5M12 11v11" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>Zonas</button>
+  <button data-panel="fechas"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7"/></svg>Fechas</button>
+  <button data-panel="analisis"><svg viewBox="0 0 24 24"><path d="M4 18l5-7 4 4 7-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="9" cy="11" r="1.6" fill="currentColor"/><circle cx="13" cy="15" r="1.6" fill="currentColor"/></svg>Análisis</button>
+  <button data-panel="capas"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z M3 13l9 5 9-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>Capas</button>
+  <button data-panel="descargar"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Descargar</button>
+  <button data-panel="acerca"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Acerca de</button>
+</nav>
+
+<aside id="panel" class="panel">
+  <button class="cerrar" id="cerrarPanel" aria-label="Cerrar panel">×</button>
+
+  <section data-sec="zonas">
+    <h2>Zonas</h2>
+    <p class="ayuda">Elige dónde trabajar. Cada zona guarda sus propios mapas.</p>
+    <div id="listaZonas" class="lista-zonas"></div>
+    <div class="caja">
+      <h3>Crear una zona propia</h3>
+      <p class="ayuda">Dibuja sobre el mapa el área de agua que te interesa (hasta 30.000 km²). Las zonas grandes se calculan por bloques; mientras más grande, más gruesa la resolución por defecto y más tarda cada fecha.</p>
+      <div class="fila dos-b"><button id="btnPolZona" class="sec">⬟ Dibujar polígono</button><button id="btnRectZona" class="sec">▭ Dibujar rectángulo</button></div>
+      <div id="infoNuevaZona" class="ayuda"></div>
+      <label id="lblResZona" hidden>Resolución del cálculo
+        <select id="resZona" class="sel-res"><option value="20">20 m · máximo detalle</option><option value="40">40 m</option><option value="60">60 m</option><option value="100">100 m</option><option value="200">200 m · rápido</option></select>
+      </label>
+      <div id="tiempoZona" class="ayuda"></div>
+      <div class="fila"><input id="nombreZona" type="text" placeholder="Nombre, ej. Bahía de Cispatá"></div>
+      <div class="fila"><button id="btnBorrarZonaDib" class="link" hidden>Borrar dibujo</button><span style="flex:1"></span><button id="btnGuardarZona" class="pri" disabled>Guardar zona</button></div>
+    </div>
+  </section>
+
+  <section data-sec="fechas" hidden>
+    <h2>Fechas</h2>
+    <p class="ayuda">Busca las imágenes Sentinel‑2 de la zona. En la línea de tiempo de abajo: <span class="pt lleno"></span> ya calculada (se ve al instante), <span class="pt vacio"></span> disponible sin calcular.</p>
+    <div class="fila dos"><label>Desde<input id="desde" type="date"></label><label>Hasta<input id="hasta" type="date"></label></div>
+    <label>Nubes máximas en la escena: <b id="vNubes">60</b> %<input id="nubes" type="range" min="5" max="100" value="60"></label>
+    <button id="btnBuscar" class="pri ancho">Buscar imágenes</button>
+    <div id="resumenFechas" class="ayuda"></div>
+    <button id="btnCalcTodas" class="sec ancho" disabled>Calcular todas las fechas sin calcular</button>
+    <div class="caja">
+      <h3>Promedio de un periodo</h3>
+      <p class="ayuda">Combina, píxel a píxel, todas las fechas ya calculadas entre dos días. Rellena los huecos de nubes y muestra el estado típico del periodo.</p>
+      <div class="presets" id="presets">
+        <button data-p="1m">Último mes</button><button data-p="3m">Últimos 3 meses</button><button data-p="seca">Temporada seca</button>
+        <button data-p="lluviosa">Temporada lluviosa</button><button data-p="anio">Último año</button><button data-p="todo">Todo</button>
+      </div>
+      <div class="fila dos"><label>Desde<input id="pDesde" type="date"></label><label>Hasta<input id="pHasta" type="date"></label></div>
+      <label>Cómo combinar
+        <select id="pStat" class="sel-res"><option value="media_geo">Media geométrica (recomendada para clorofila)</option><option value="mediana">Mediana</option><option value="media">Media aritmética</option><option value="max">Máximo (floraciones)</option></select>
+      </label>
+      <label>Mínimo de fechas con dato por píxel: <b id="vMinObs">1</b><input id="pMinObs" type="range" min="1" max="10" value="1"></label>
+      <button id="btnPromedio" class="pri ancho">Ver promedio del periodo</button>
+      <div id="estadoProm" class="ayuda"></div>
+    </div>
+    <div class="caja">
+      <h3>Cálculos en curso</h3>
+      <div id="estadoTrab" class="ayuda">Nada en cola.</div>
+      <button id="btnCancelar" class="link" hidden>Cancelar los pendientes</button>
+      <p class="ayuda">Los cálculos siguen aunque cierres esta página, mientras la ventana negra del programa esté abierta. Cada fecha se guarda apenas termina.</p>
+    </div>
+  </section>
+
+  <section data-sec="analisis" hidden>
+    <h2>Análisis</h2>
+    <p class="ayuda">Qué área resumir en el panel derecho y en la serie de tiempo. No cambia la zona ni recalcula nada.</p>
+    <div class="segmentado" role="radiogroup" id="segModo">
+      <button data-modo="zona" class="sel">Toda la zona</button><button data-modo="poligono">Polígono</button><button data-modo="punto">Punto</button>
+    </div>
+    <div id="ayudaModo" class="ayuda"></div>
+    <div class="fila"><button id="btnDibujarPol" class="sec" hidden>Dibujar polígono</button><button id="btnBorrarPol" class="link" hidden>Borrar polígono</button></div>
+    <h3>Cobertura del cálculo</h3>
+    <div class="segmentado" id="segCob">
+      <button data-cob="todo" class="sel">Toda la zona</button><button data-cob="cerca">Solo cerca de estaciones</button>
+    </div>
+    <p class="ayuda" id="ayudaCob"></p>
+    <label>Distancia de confianza: <b id="vDist">12</b> km de una estación REDCAM<input id="dist" type="range" min="3" max="30" value="12"></label>
+    <p class="ayuda">El modelo se entrenó con muestras costeras REDCAM. Más lejos (mar abierto) es menos confiable: con "Toda la zona" se estima igual y se marca con un velo blanco; con "Solo cerca" se deja en blanco y el cálculo es más rápido.</p>
+  </section>
+
+  <section data-sec="capas" hidden>
+    <h2>Capas</h2>
+    <h3>Mapa base</h3>
+    <div class="opciones" id="bases"></div>
+    <h3>Superposiciones</h3>
+    <label class="check"><input type="checkbox" id="chkChla" checked> Clorofila‑a estimada</label>
+    <label>Opacidad <b id="vOpac">90</b> %<input id="opac" type="range" min="20" max="100" value="90"></label>
+    <label class="check"><input type="checkbox" id="chkEst" checked> Estaciones REDCAM</label>
+    <label class="check"><input type="checkbox" id="chkZona" checked> Contorno de la zona</label>
+    <label class="check"><input type="checkbox" id="chkLejos" checked> Velo sobre zonas lejanas (menor confianza)</label>
+  </section>
+
+  <section data-sec="descargar" hidden>
+    <h2>Descargar</h2>
+    <p class="ayuda">Para la fecha y el área seleccionadas.</p>
+    <a id="dlTif" class="pri ancho boton">Mapa GeoTIFF (µg/L)</a>
+    <button id="dlSerie" class="sec ancho">Serie de tiempo (CSV)</button>
+    <button id="dlRedcam" class="sec ancho">Comparación con REDCAM (CSV)</button>
+    <p class="ayuda">El GeoTIFF abre en QGIS o ArcGIS Pro (UTM, nodata = vacío).</p>
+  </section>
+
+  <section data-sec="acerca" hidden>
+    <h2>Acerca de</h2>
+    <p>Estima clorofila‑a superficial (µg/L) en ciénagas, bahías y aguas costeras de Colombia a partir de Sentinel‑2.</p>
+    <p><b>Modelo:</b> ensamble de Extra Trees y dos LightGBM entrenado con 1.703 muestras REDCAM/INVEMAR (2016–2025). Usa bandas e índices, control de calidad, corrección SWIR, GLORIA, lluvia y caudales del día, e historial de las estaciones cercanas. Quita píxeles con vegetación acuática o techos.</p>
+    <table class="tabla"><thead><tr><th>Dónde</th><th>R²</th><th>dentro ×2</th></tr></thead>
+      <tbody><tr><td>En estaciones con historial</td><td>0.75</td><td>64 %</td></tr><tr><td>Lejos de estaciones</td><td>0.69</td><td>57 %</td></tr></tbody></table>
+    <p class="ayuda" id="versionModelo"></p>
+  </section>
+</aside>
+
+<main id="mapa"></main>
+
+<section id="tarjeta" class="tarjeta">
+  <div class="t-cab"><div><div class="t-zona" id="tZona"></div><div class="t-fecha" id="tFecha">Elige una fecha</div></div><button id="plegar" class="plegar" aria-label="Plegar">–</button></div>
+  <div id="tCuerpo"></div>
+</section>
+
+<div class="leyenda"><span class="ley-t">Clorofila‑a (µg/L)</span><div class="ley-barra"></div><div class="ley-et"><span>0.1</span><span>1</span><span>10</span><span>100</span></div></div>
+
+<section class="linea" id="linea">
+  <div class="l-ctrl">
+    <button id="ant" aria-label="Fecha anterior">‹</button><button id="play" aria-label="Animar">▶</button><button id="sig" aria-label="Fecha siguiente">›</button>
+  </div>
+  <div class="l-pista" id="pista"><div class="l-vacio" id="lVacio"><span>Busca imágenes en <b>Fechas</b> para ver la línea de tiempo.</span></div></div>
+</section>
+
+<div id="aviso" class="aviso" hidden></div>
+
+<script src="/web/vendor/leaflet/leaflet.js"></script>
+<script src="/web/vendor/leaflet-draw/leaflet.draw.js"></script>
+<script src="/web/app.js"></script>
+</body>
+</html>
